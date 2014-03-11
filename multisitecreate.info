@@ -1,0 +1,4 @@
+name = Multisite Create
+description = Create a multisite
+package = custom
+core = 7.x

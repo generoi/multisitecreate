@@ -1,0 +1,45 @@
+<?php
+
+define('MULTISITECREATE_DB_CREATE', 0);
+define('MULTISITECREATE_DB_PREFIX', 1);
+define('MULTISITECREATE_DB_SHARED', 2);
+
+/**
+ * Implements hook_menu().
+ */
+function multisitecreate_menu() {
+  $items['admin/people/multisitecreate'] = array(
+    'title' => 'Multisite',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('multisitecreate_create_form'),
+    'access arguments' => array('create multisite'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'multisitecreate.admin.inc',
+    'options' => array('attributes' => array('class' => array('overlay-exclude'))),
+  );
+  $items['admin/people/multisitecreate/create'] = array(
+    'title' => 'Create new site',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/people/multisitecreate/settings'] = array(
+    'title' => 'Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('multisitecreate_admin_settings'),
+    'access arguments' => array('create multisite'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'multisitecreate.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function multisitecreate_permission() {
+  $permissions['create multisite'] = array(
+    'title' => t('Create multisite'),
+    'restrict access' => TRUE,
+    'description' => t('Create and scaffold new multisite installations.'),
+  );
+  return $permissions;
+}
