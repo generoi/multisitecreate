@@ -124,3 +124,30 @@ $cookie_domain = '.example.org';
 
 include DRUPAL_ROOT . '/sites/default/shared.settings.php';
 ```
+
+### Example scaffolded settings: /sites/foobar.example.org/settings.php
+
+```php
+<?php
+
+/**
+ * @file
+ * Boilerplate for multisite instances, this loads the default settings such as
+ * database configurations but then overrides with multisite specific
+ * configurations.
+ */
+
+include DRUPAL_ROOT . '/sites/default/shared.settings.php';
+// On installation and update runs separate tables are required.
+if (preg_match('@^/(install|update)\.php@', request_uri(), $matches) && !isset($install_done)) {
+  $databases['default']['default']['prefix'] = 'foobar_example_com.';
+}
+// Once installed, use the shared tables.
+else {
+  $databases['default']['default']['prefix']['default'] = 'foobar_example_com.';
+}
+ 
+$databases['default']['default']['database'] = 'foobar_example_com';
+ 
+$drupal_hash_salt = '.................';
+```
