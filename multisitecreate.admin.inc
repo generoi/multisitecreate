@@ -46,7 +46,7 @@ function multisitecreate_create_form($form, &$form_state) {
 }
 
 /**
- * Scaffold the multisite directory, its settings.php file and finally redirect 
+ * Scaffold the multisite directory, its settings.php file and finally redirect
  * to the sites install.php script.
  */
 function multisitecreate_create_form_submit($form, &$form_state) {
@@ -73,30 +73,53 @@ function multisitecreate_create_form_submit($form, &$form_state) {
   // We cannot use drupal_rewrite_settings() as it's locked to the current
   // working sites directory.
   $hash = VERSION < 7.24 ? drupal_hash_base64(drupal_random_bytes(55)) : drupal_random_key();
-  switch (variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_PREFIX)) {
-    case MULTISITECREATE_DB_PREFIX:
-      // Append a prefix setting
+  $db_setup = variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_SAME_PREFIX);
+  // If a database is created, this name will be used
+  $dbname = multisitecreate_get_db($new_domain);
+  switch ($db_setup) {
+    // Same database but prefix tables, add the subdomain as a prefix
+    case MULTISITECREATE_DB_SAME_PREFIX:
       $settings_contents .= "\n\n\$databases['default']['default']['prefix'] = '${subdomain}_';";
       break;
-    case MULTISITECREATE_DB_SHARED:
-      // Append a prefix setting
+
+    // The instance used some shared tables, add a condition which uses it's
+    // own tables for installation (install fails if tables exist) and then
+    // the shared tables on regular usage.
+    case MULTISITECREATE_DB_SAME_SHARED:
+    case MULTISITECREATE_DB_SEPARATE_SHARED:
+      // Use table separator for same database and database separator for
+      // separate database.
+      if ($db_setup === MULTISITECREATE_DB_SEPARATE_SHARED) {
+        $separator = '.';
+        // When it's a separate db, use the generated db name instead of the
+        // collition prone prefix subdomain.
+        $subdomain = $dbname;
+      }
+      else {
+        $separator = '_';
+      }
+
       $settings_contents .= <<<EOT
+// On installation and update runs separate tables are required.
 if (preg_match('@^/(install|update)\.php@', request_uri(), \$matches) && !isset(\$install_done)) {
-  // On installation separate tables are required.
-  \$databases['default']['default']['prefix'] = '${subdomain}_';
+  \$databases['default']['default']['prefix'] = '${subdomain}${separator}';
 }
 // Once installed, use the shared tables.
 else {
-  \$databases['default']['default']['prefix']['default'] = '${subdomain}_';
+  \$databases['default']['default']['prefix']['default'] = '${subdomain}${separator}';
 }
 EOT;
       break;
-    case MULTISITECREATE_DB_CREATE:
-      // Append a database name setting.
-      $dbname = multisitecreate_get_db($new_domain);
-      $settings_contents .= "\n\n\$databases['default']['default']['database'] = '$dbname';";
-      db_query("CREATE DATABASE $dbname");
-      break;
+    // Separate db (no shared tables) simply uses it's own database setting.
+    case MULTISITECREATE_DB_SEPARATE:
+      // do nothing, the database configuration is added later.
+  }
+
+  // Create the multisites database if setup requires it.
+  if (in_array($db_setup, array(MULTISITECREATE_DB_SEPARATE, MULTISITECREATE_DB_SEPARATE_SHARED))) {
+    // Append a database name setting.
+    $settings_contents .= "\n\n\$databases['default']['default']['database'] = '$dbname';";
+    db_query("CREATE DATABASE $dbname");
   }
 
   // Append a unique salt
@@ -137,12 +160,18 @@ function _multisitecreate_subdomain_validate($element, &$form_state) {
   if (in_array($value, array('www'))) {
     form_error($element, t('@value is a restricted subdomain.', array('@value' => $value)));
   }
-
   $new_domain = multisitecreate_get_domain($value);
-  $database = multisitecreate_get_db($new_domain);
-  $exists = db_query('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :name', array(':name' => $database))->fetchField();
-  if ($exists) {
-    form_error($element, t('The database @name already exists', array('@name' => $database)));
+
+  // If the multisites use their own database, check that it doesnt exist.
+  switch (variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_SAME_PREFIX)) {
+    case MULTISITECREATE_DB_SEPARATE:
+    case MULTISITECREATE_DB_SEPARATE_SHARED:
+      $database = multisitecreate_get_db($new_domain);
+      $exists = db_query('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :name', array(':name' => $database))->fetchField();
+      if ($exists) {
+        form_error($element, t('The database @name already exists', array('@name' => $database)));
+      }
+      break;
   }
 
   if (is_dir(DRUPAL_ROOT . "/sites/$new_domain")) {
@@ -188,11 +217,12 @@ function multisitecreate_admin_settings() {
   $form['multisitecreate_db_setup'] = array(
     '#type' => 'select',
     '#title' => t('Database setup'),
-    '#default_value' => variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_PREFIX),
+    '#default_value' => variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_SAME_PREFIX),
     '#options' => array(
-      MULTISITECREATE_DB_PREFIX => t('Same database with prefixed tables'),
-      MULTISITECREATE_DB_CREATE => t('Create a new database for each install'),
-      MULTISITECREATE_DB_SHARED => t('Same database with prefixed and shared tables'),
+      MULTISITECREATE_DB_SAME_PREFIX => t('Same database with prefixed tables'),
+      MULTISITECREATE_DB_SEPARATE => t('Create a new database for each install'),
+      MULTISITECREATE_DB_SAME_SHARED => t('Same database with prefixed and shared tables'),
+      MULTISITECREATE_DB_SEPARATE_SHARED => t('Create a new database for each install but share some tables.'),
     ),
   );
 
