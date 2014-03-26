@@ -19,19 +19,27 @@ function multisitecreate_create_form($form, &$form_state) {
   include_once DRUPAL_ROOT . '/includes/install.core.inc';
   $locale_options = array();
   $locales = install_find_locales($profile);
-  foreach ($locales as $locale) {
-    $locale_options[$locale->langcode] = $locale->langcode;
+  // If there are more than 1 language enabled, let the user choose which
+  // language to use.
+  if (count($locales) > 1) {
+    $languages = language_list();
+    foreach ($locales as $locale) {
+      $language = $languages[$locale->langcode]->native;
+      $locale_options[$locale->langcode] = $language;
+    }
+    $form['locale'] = array(
+      '#type' => 'select',
+      '#title' => t('Locale'),
+      '#options' => $locale_options,
+    );
   }
-  $form['locale'] = array(
-    '#type' => 'select',
-    '#title' => t('Locale'),
-    '#options' => $locale_options,
-  );
-  // if (variable_get('multisitecreate_db_setup', MULTISITECREATE_DB_SHARED)) {
-  //   $form['user'] = array(
-  //     ''
-  //   );
-  // }
+  // If there's only one language, do not display a select list.
+  else {
+    $form['locale'] = array(
+      '#type' => 'hidden',
+      '#value' => $locales[0]->name,
+    );
+  }
 
   $form['actions']['#type'] = 'actions';
   $form['actions']['save'] = array(
