@@ -13,7 +13,7 @@ function multisitecreate_menu() {
     'title' => 'Multisite',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('multisitecreate_create_form'),
-    'access arguments' => array('create multisite'),
+    'access arguments' => array('administer multisite'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'multisitecreate.admin.inc',
     'options' => array('attributes' => array('class' => array('overlay-exclude'))),
@@ -26,10 +26,20 @@ function multisitecreate_menu() {
     'title' => 'Settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('multisitecreate_admin_settings'),
-    'access arguments' => array('create multisite'),
+    'access arguments' => array('administer multisite'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'multisitecreate.admin.inc',
   );
+  if (variable_get('multisitecreate_public_form', FALSE)) {
+    $items['multisitecreate'] = array(
+      'title' => 'Create a site',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('multisitecreate_create_form'),
+      'access arguments' => array('create multisite'),
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'multisitecreate.admin.inc',
+    );
+  }
   return $items;
 }
 
@@ -37,9 +47,13 @@ function multisitecreate_menu() {
  * Implements hook_permission().
  */
 function multisitecreate_permission() {
+  $permissions['administer multisite'] = array(
+    'title' => t('Administer multisite'),
+    'restrict access' => TRUE,
+    'description' => t('Configure and create multisite installations via the administration UI.'),
+  );
   $permissions['create multisite'] = array(
     'title' => t('Create multisite'),
-    'restrict access' => TRUE,
     'description' => t('Create and scaffold new multisite installations.'),
   );
   return $permissions;

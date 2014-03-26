@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * Implements hook_schema().
+ */
+function multisitecreate_schema() {
+  $schema['cache_multisitecreate'] = drupal_get_schema_unprocessed('system', 'cache');
+  $schema['cache_multisitecreate']['description'] = 'Cache table for Multisitecreate';
+  return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function multisitecreate_uninstall() {
+  // db_query("DELETE FROM {variable} WHERE name LIKE 'multisitecreate_%%'");
+}

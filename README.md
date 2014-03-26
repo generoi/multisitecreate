@@ -27,6 +27,17 @@ INSTALLATION
 
 4. Reuse the shared settings file in your main `settings.php` file as well.
 
+5. Configure variables in your `settings.php`
+
+   ```php
+   // Shared users table variable required in multisitecreate_profile.
+   $conf['multisitecreate_user_table'] = 'shared.users';
+   // Role for the admin user created in a new multisite instance.
+   $conf['multisitecreate_admin_role'] = 'blogger';
+   // The email for the registered temporary admin user.
+   $conf['multisitecreate_temp_email'] = 'admin@example.org';
+   ```
+
 5. Enable the module
 
 6. Configure how multisites are created at admin/people/multisitecreate/settings
@@ -75,6 +86,13 @@ if (php_sapi_name() != 'cli' && !in_array($_SERVER['HTTP_HOST'], $_whitelist) &&
 
 # .... the contents of default.settings.php..
 
+// Shared users table variable required in multisitecreate_profile.
+$conf['multisitecreate_user_table'] = 'shared.users';
+// Role for the admin user created in a new multisite instance.
+$conf['multisitecreate_admin_role'] = 'blogger';
+// The email for the registered temporary admin user.
+$conf['multisitecreate_temp_email'] = 'admin@example.org';
+
 if (file_exists(__DIR__ .'/settings.local.php')) {
   include __DIR__ . '/settings.local.php';
 }
@@ -104,6 +122,9 @@ $databases['default']['default'] = array(
     'users' => 'shared.',
     'sessions' => 'shared.',
     'authmap' => 'shared.',
+    // table is used to memorie the user which initialized the site
+    // create process. This table must exist in a database!
+    'cache_multisitecreate' => 'shared.',
   ),
 );
 

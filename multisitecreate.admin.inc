@@ -8,6 +8,7 @@ function multisitecreate_create_form($form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Subdomain'),
     '#description' => t('The subdomain which the new site will use.'),
+    '#suffix' => multisitecreate_get_domain(''),
     '#element_validate' => array('_multisitecreate_subdomain_validate'),
   );
   $profile = variable_get('multisitecreate_profilename', 'standard');
@@ -130,11 +131,22 @@ EOT;
     return;
   }
 
+  global $user;
+  $is_authenticated = $user->uid > 1;
+  // If the user is logged in and is not the main admin user.
+  if ($is_authenticated) {
+    $sid = session_id();
+    global $cookie_domain;
+    setcookie('multisitecreate_sid', $sid, 0, '/', $cookie_domain);
+    cache_set("create:$sid", $user, 'cache_multisitecreate', CACHE_TEMPORARY);
+  }
+
   drupal_goto("http://$new_domain/install.php", array(
     'external' => TRUE,
     'query' => array(
       'locale' => $values['locale'],
       'profile' => $values['profile'],
+      'create_user' => $is_authenticated ? 'false' : 'true',
     ),
   ));
 }
@@ -245,5 +257,13 @@ function multisitecreate_admin_settings() {
     '#description' => t('Path to the settings.php file to use as a base for new multisites. This file should contain the database username and password prefilled! Only the database name will be replaced by the creation process.'),
     '#default_value' => variable_get('multisitecreate_default_settings', 'sites/default/default.settings.php'),
   );
+
+  $form['multisitecreate_public_form'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Public create form'),
+    '#description' => t('Add a separate !link, where users with the permission %permission can create sites (if the user is logged and is not the administrator that user will be used for the blog role).', array('!link' => l(t('creation form'), 'multisitecreate'), '%permission' => t('Create multisite'))),
+    '#default_value' => variable_get('multisitecreate_public_form', FALSE),
+  );
+
   return system_settings_form($form);
 }
