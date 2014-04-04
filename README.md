@@ -1,6 +1,8 @@
 Multisite Create
 ================
 
+_Deprecated in favour of [Multisite](https://github.com/generoi/multisite)_
+
 INSTALLATION
 ------------
 1. Either symlink the multisitecreate_profile installation profile to profiles/
